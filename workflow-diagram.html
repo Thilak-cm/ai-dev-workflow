@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI-Assisted Dev Workflow</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#f8f9fa; --card:#ffffff; --border:#e1e4e8; --border-hover:#c9ccd0;
+    --text:#1a1a1a; --muted:#9ca3af; --label:#6b7280; --accent:#374151;
+    --purple:#7c3aed; --purple-bg:#f5f3ff; --purple-border:#e0d6ff;
+    --orange:#d97706; --orange-bg:#fffbeb; --orange-border:#fde68a;
+    --red:#dc2626; --red-bg:#fef2f2; --red-border:#fecaca;
+    --green:#059669; --green-bg:#ecfdf5; --green-border:#a7f3d0;
+    --blue:#2563eb; --blue-bg:#eff6ff; --blue-border:#bfdbfe;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{height:100%}
+  body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;min-height:100vh;display:flex;flex-direction:column}
+
+  .header{padding:28px 48px 16px}
+  .header h1{font-size:22px;font-weight:600;letter-spacing:-.4px}
+  .header .sub{font-size:13px;color:var(--muted);margin-top:4px}
+
+  /* ── 5-col grid: C1 B1 C2 B2 C3 ── */
+  .pipeline{
+    display:grid;
+    grid-template-columns:minmax(260px,340px) 72px minmax(280px,380px) 72px minmax(260px,340px);
+    grid-template-rows:auto auto auto auto auto;
+    justify-content:center;
+    padding:8px 40px 16px;
+    gap:0;
+  }
+
+  /* ── Vertical connector ── */
+  .vc{display:flex;flex-direction:column;align-items:center;padding:8px 0;justify-self:center}
+  .vc .vl{width:1.5px;height:18px;background:var(--border)}
+  .vc .ad{width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid var(--muted)}
+  .vc .au{width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:6px solid var(--muted)}
+  .vc .vt{font-size:12px;color:var(--muted);padding:3px 0;white-space:nowrap}
+
+  /* ── Card ── */
+  .card{width:100%;border:1px solid var(--border);border-radius:12px;background:var(--card);cursor:pointer;transition:border-color .15s,box-shadow .15s}
+  .card:hover{border-color:var(--border-hover);box-shadow:0 2px 8px rgba(0,0,0,.06)}
+  .card.expanded{border-color:var(--accent)}
+  .ch{padding:14px 20px;display:flex;align-items:center;justify-content:space-between}
+  .ch .tl{display:flex;align-items:center;gap:10px}
+  .ch .sn{font-size:16px;font-weight:600;color:var(--text);letter-spacing:-.3px}
+  .ch .ds{font-size:13px;color:var(--muted)}
+  .ch .cv{font-size:13px;color:var(--muted);transition:transform .2s}
+  .card.expanded .cv{transform:rotate(90deg)}
+  .cb{display:flex;gap:6px;padding:0 20px 12px;flex-wrap:wrap}
+  .b{font-size:11.5px;padding:3px 10px;border-radius:6px;font-weight:500}
+  .b.ag{background:var(--purple-bg);color:var(--purple);border:1px solid var(--purple-border)}
+  .b.ga{background:var(--orange-bg);color:var(--orange);border:1px solid var(--orange-border)}
+  .b.lp{background:var(--red-bg);color:var(--red);border:1px solid var(--red-border)}
+  .b.td{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)}
+  .b.li{background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-border)}
+
+  /* ── Expanded detail ── */
+  .cd{max-height:0;overflow:hidden;transition:max-height .3s ease,padding .12s;padding:0 20px}
+  .card.expanded .cd{max-height:600px;padding:0 20px 16px}
+  .ph{display:flex;gap:12px;align-items:flex-start;padding:7px 0;border-top:1px solid var(--bg)}
+  .ph:first-child{border-top:none}
+  .pn{font-size:11px;font-weight:600;color:var(--label);background:var(--bg);border-radius:5px;padding:3px 8px;min-width:20px;text-align:center;flex-shrink:0;margin-top:1px}
+  .pc{font-size:13.5px;color:var(--accent);line-height:1.6}
+  .pc .ai{color:var(--purple);font-weight:500}
+  .pc .gi{color:var(--orange);font-weight:500}
+  .pc .dm{color:var(--muted)}
+  .pc code{font-size:12px;background:var(--bg);padding:2px 6px;border-radius:4px}
+
+  /* ── Horizontal bridge ── */
+  .hb{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding-top:20px}
+  .hb-a{display:flex;align-items:center;width:100%}
+  .hb-a .da{flex:1;height:0;border-top:2px dashed var(--muted)}
+  .hb-a .so{flex:1;height:0;border-top:2px solid var(--border)}
+  .hb-a .hr{width:0;height:0;border-top:5px solid transparent;border-bottom:5px solid transparent;border-left:6px solid var(--muted)}
+  .hb-l{font-size:12px;color:var(--label);margin-top:4px;font-weight:500;text-align:center}
+  .hb-s{font-size:11px;color:var(--muted);text-align:center}
+
+  /* ── Review wrapper ── */
+  .rw{width:100%;padding:16px;border:1.5px solid var(--border);border-radius:14px;background:var(--card);box-shadow:0 1px 4px rgba(0,0,0,.04)}
+  .rw .rwh{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+  .rw .rwt{font-size:16px;font-weight:600;color:var(--text);letter-spacing:-.3px}
+  .rw .rwb{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+
+  /* ── Sub-card ── */
+  .sc{width:100%;border:1px solid var(--border);border-radius:9px;background:var(--bg);cursor:pointer;transition:border-color .15s}
+  .sc:hover{border-color:var(--border-hover)}
+  .sc.expanded{border-color:var(--accent)}
+  .sch{padding:10px 14px;display:flex;align-items:center;justify-content:space-between}
+  .sch .sl{display:flex;align-items:center;gap:8px}
+  .sch .sn2{font-size:15px;font-weight:600;color:var(--accent)}
+  .sch .sb{font-size:10.5px;font-weight:500;padding:2px 7px;border-radius:5px;background:var(--purple-bg);color:var(--purple);border:1px solid var(--purple-border)}
+  .sch .cv{font-size:12px;color:var(--muted);transition:transform .2s}
+  .sc.expanded .cv{transform:rotate(90deg)}
+  .scd{max-height:0;overflow:hidden;transition:max-height .25s ease;padding:0 14px}
+  .sc.expanded .scd{max-height:400px;padding:0 14px 12px}
+  .scd .sr{font-size:13px;color:var(--label);line-height:1.6;padding:4px 0;border-top:1px solid var(--card)}
+  .scd .sr:first-child{border-top:none}
+
+  /* ── Loop arrows ── */
+  .la{display:flex;align-items:center;justify-content:center;width:100%;padding:6px 0;gap:8px}
+  .la span.ll{font-size:11px;color:var(--muted);white-space:nowrap}
+  .la .lc{display:flex;flex-direction:column;align-items:center}
+  .la .ll2{width:1.5px;height:6px;background:var(--border)}
+  .la .lad{width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-top:5px solid var(--muted)}
+  .la .lau{width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-bottom:5px solid var(--muted)}
+
+  /* ── Compact review steps ── */
+  .rs{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px solid var(--bg)}
+  .rs span{font-size:11.5px;color:var(--label);padding:3px 10px;background:var(--bg);border-radius:5px}
+  .rs .gi{color:var(--orange);font-weight:500}
+
+  /* ── Linear section ── */
+  .ls{padding:18px 48px 14px;border-top:1px solid var(--border)}
+  .ls .lh{font-size:12px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px}
+  .ls .lt{display:flex;align-items:center;gap:0;flex-wrap:wrap}
+  .sp{padding:8px 18px;font-size:13px;font-weight:500;border-radius:8px;background:var(--card);border:1px solid var(--border);color:var(--accent)}
+  .sp .st{display:block;font-size:10.5px;font-weight:400;color:var(--muted);margin-top:2px}
+  .sa{color:var(--muted);font-size:14px;margin:0 6px}
+
+  /* ── Legend ── */
+  .lg{display:flex;gap:22px;padding:12px 48px 20px;flex-wrap:wrap;border-top:1px solid var(--border)}
+  .lg .li2{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--label)}
+  .lg .ld{width:9px;height:9px;border-radius:50%}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>AI-Assisted Dev Workflow</h1>
+  <div class="sub">Click any block to expand &middot; U-shaped flow: create &#8595; review &#8594; ship &#8593;</div>
+</div>
+
+<div class="pipeline">
+
+  <!-- ══════════ ROW 1: /draft · · /codebase-scan ══════════ -->
+
+  <div style="grid-column:1;grid-row:1;">
+    <div style="text-align:center;font-size:12px;color:var(--muted);padding-bottom:6px">meeting notes / action items</div>
+    <div class="card" onclick="toggle(this)">
+      <div class="ch"><div class="tl"><span class="sn">/draft-linear-issues</span></div><span class="cv">&#9656;</span></div>
+      <div class="cb">
+        <span class="b ga">&#x1F464; approval per item</span>
+        <span class="b li">&rarr; Backlog</span>
+      </div>
+      <div class="cd">
+        <div class="ph"><div class="pn">1</div><div class="pc">Parse notes into items <span class="dm">(max 30)</span></div></div>
+        <div class="ph"><div class="pn">2</div><div class="pc"><span class="gi">Approve, edit, or skip</span> each 1-by-1</div></div>
+        <div class="ph"><div class="pn">3</div><div class="pc">Create Backlog issue with area tag + priority</div></div>
+        <div class="ph"><div class="pn">4</div><div class="pc">Dedup check against existing issues</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right column: single flex container spanning all rows for even spacing -->
+  <div style="grid-column:5;grid-row:1/6;display:flex;flex-direction:column;justify-content:space-between;">
+
+    <div style="opacity:.55;">
+      <div style="text-align:center;font-size:11px;color:var(--muted);padding-bottom:4px;font-style:italic">optional &middot; keeps context fresh</div>
+      <div class="card" onclick="toggle(this)" style="border-style:dashed;">
+        <div class="ch"><div class="tl"><span class="sn">/codebase-context-scan</span></div><span class="cv">&#9656;</span></div>
+        <div class="cb"><span class="b li">refresh overview</span></div>
+        <div class="cd">
+          <div class="ph"><div class="pc">Regenerates codebase overview that all skills read for context. Deterministic Node.js script. Keeps the loop fresh.</div></div>
+        </div>
+      </div>
+    </div>
+
+  <!-- ══════════ ROW 2: connectors ══════════ -->
+
+  <div class="vc" style="grid-column:1;grid-row:2;">
+    <div class="vl"></div><div class="ad"></div><div class="vl"></div>
+  </div>
+    <div class="vc" style="opacity:.45;">
+      <div class="vl" style="border-left:1.5px dashed var(--border);width:0"></div><div class="au"></div><div class="vl" style="border-left:1.5px dashed var(--border);width:0"></div>
+    </div>
+
+    <div>
+      <div class="card" onclick="toggle(this)">
+        <div class="ch"><div class="tl"><span class="sn">/merge-issue</span></div><span class="cv">&#9656;</span></div>
+        <div class="cb">
+          <span class="b ga">&#x1F464; CI + comments</span>
+          <span class="b li">&rarr; Done</span>
+        </div>
+        <div class="cd">
+          <div class="ph"><div class="pn">1</div><div class="pc">Verify CI passing + no unresolved comments</div></div>
+          <div class="ph"><div class="pn">2</div><div class="pc"><code>gh pr merge</code> into dev</div></div>
+          <div class="ph"><div class="pn">3</div><div class="pc">Checkout dev, pull, delete feature branch</div></div>
+          <div class="ph"><div class="pn">4</div><div class="pc">Linear: comment + move to Done</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="vc">
+      <div class="vl"></div><div class="vt">CI passing</div><div class="au"></div><div class="vl"></div>
+    </div>
+
+    <div>
+      <div class="card" onclick="toggle(this)">
+        <div class="ch"><div class="tl"><span class="sn">CI Gates</span><span class="ds">GitHub Actions</span></div><span class="cv">&#9656;</span></div>
+        <div class="cb"><span class="b lp">blocks merge if failing</span></div>
+        <div class="cd">
+          <div class="ph"><div class="pn">&check;</div><div class="pc">Unit Tests &mdash; frontend + Cloud Functions</div></div>
+          <div class="ph"><div class="pn">&check;</div><div class="pc">Security Rules &mdash; 40 static checks</div></div>
+          <div class="ph"><div class="pn">&check;</div><div class="pc">Firebase Hosting &mdash; preview deploy</div></div>
+          <div class="ph"><div class="pn">&check;</div><div class="pc">Lint &mdash; ESLint</div></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end right column flex -->
+
+  <!-- ══════════ ROW 2: left connector ══════════ -->
+
+  <div class="vc" style="grid-column:1;grid-row:2;">
+    <div class="vl"></div><div class="ad"></div><div class="vl"></div>
+  </div>
+
+  <!-- ══════════ ROW 3: /refine · /review (3→5) ══════════ -->
+
+  <div style="grid-column:1;grid-row:3;">
+    <div class="card" onclick="toggle(this)">
+      <div class="ch"><div class="tl"><span class="sn">/refine-linear-issue</span></div><span class="cv">&#9656;</span></div>
+      <div class="cb">
+        <span class="b ag">codebase-explorer</span>
+        <span class="b ga">&#x1F464; clarifying Qs</span>
+        <span class="b li">Backlog &rarr; Todo</span>
+      </div>
+      <div class="cd">
+        <div class="ph"><div class="pn">1</div><div class="pc">Fetch issue + auto-load codebase overview</div></div>
+        <div class="ph"><div class="pn">2</div><div class="pc">If complex: <span class="ai">codebase-explorer</span> <span class="dm">(Sonnet)</span></div></div>
+        <div class="ph"><div class="pn">3</div><div class="pc">Ask clarifying questions to remove ambiguity and fully extract user intent</div></div>
+        <div class="ph"><div class="pn">4</div><div class="pc">Draft refined description + acceptance criteria</div></div>
+        <div class="ph"><div class="pn">5</div><div class="pc">Update Linear, Backlog &rarr; Todo</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- /review-issue spanning rows 3-5 in center column -->
+  <div style="grid-column:3;grid-row:3/6;">
+    <div class="rw">
+      <div class="rwh"><span class="rwt">/review-issue</span></div>
+      <div class="rwb">
+        <span class="b ga">&#x1F464; approve fixes</span>
+        <span class="b li">&rarr; In Review</span>
+      </div>
+      <div class="sc" onclick="toggle(this);event.stopPropagation()">
+        <div class="sch">
+          <div class="sl"><span class="sn2">code-auditor</span><span class="sb">Sonnet</span><span class="sb">read-only</span></div>
+          <span class="cv">&#9656;</span>
+        </div>
+        <div class="scd">
+          <div class="sr">Structured report: <strong>blockers</strong>, <strong>warnings</strong>, nits</div>
+          <div class="sr">Scope alignment vs Linear acceptance criteria</div>
+          <div class="sr">Reviews correctness, security, patterns, test coverage</div>
+          <div class="sr">Verdict: <strong>CLEAN</strong> or <strong>HAS_FINDINGS</strong></div>
+        </div>
+      </div>
+      <div class="la">
+        <span class="ll">findings &#9660;</span>
+        <div class="lc"><div class="ll2"></div><div class="lad"></div><div style="height:2px"></div><div class="lau"></div><div class="ll2"></div></div>
+        <span class="ll">&#9650; re-audit <span style="color:var(--red)">(max 3)</span></span>
+      </div>
+      <div class="sc" onclick="toggle(this);event.stopPropagation()">
+        <div class="sch">
+          <div class="sl"><span class="sn2">code-fixer</span><span class="sb">Opus</span></div>
+          <span class="cv">&#9656;</span>
+        </div>
+        <div class="scd">
+          <div class="sr">Fixes all <strong>blockers</strong> + <strong>warnings</strong></div>
+          <div class="sr">Runs <code style="font-size:12px;background:var(--card);padding:2px 5px;border-radius:3px">npm test</code> + <code style="font-size:12px;background:var(--card);padding:2px 5px;border-radius:3px">npm run lint</code></div>
+          <div class="sr">Reports unfixable items for user decision</div>
+        </div>
+      </div>
+      <div class="rs">
+        <span><span class="gi">&#x1F464;</span> Version Bump</span>
+        <span>Ship PR &rarr; <code style="font-size:10.5px;background:var(--card);padding:1px 5px;border-radius:3px">dev</code></span>
+        <span>Linear &rarr; In Review</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ ROW 4: left connector ══════════ -->
+
+  <div class="vc" style="grid-column:1;grid-row:4;">
+    <div class="vl"></div><div class="vt">user selects issue</div><div class="ad"></div><div class="vl"></div>
+  </div>
+
+  <!-- ══════════ ROW 5: /implement · bridges ══════════ -->
+
+  <div style="grid-column:1;grid-row:5;align-self:start;">
+    <div class="card" onclick="toggle(this)">
+      <div class="ch"><div class="tl"><span class="sn">/implement-issue</span></div><span class="cv">&#9656;</span></div>
+      <div class="cb">
+        <span class="b ag">codebase-explorer</span>
+        <span class="b td">TDD enforced</span>
+        <span class="b ga">&#x1F464; pick impl. path</span>
+        <span class="b li">&rarr; In Progress</span>
+      </div>
+      <div class="cd">
+        <div class="ph"><div class="pn">1</div><div class="pc"><strong>Issue Selection</strong> &mdash; filter <span class="dm">(assignee, state, labels)</span></div></div>
+        <div class="ph"><div class="pn">2</div><div class="pc"><strong>Context</strong> &mdash; overview + <span class="ai">codebase-explorer</span></div></div>
+        <div class="ph"><div class="pn">3</div><div class="pc"><strong>Plan</strong> &mdash; file paths, test specs, tradeoff options</div></div>
+        <div class="ph"><div class="pn">4</div><div class="pc"><strong>Path</strong> &mdash; <span class="gi">user picks approach</span></div></div>
+        <div class="ph"><div class="pn">5</div><div class="pc"><strong>TDD</strong> &mdash; branch &rarr; tests &rarr; code &rarr; refactor</div></div>
+        <div class="ph"><div class="pn">6</div><div class="pc"><strong>Linear</strong> &mdash; branch, commits, test results</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bridge 1: /clear -->
+  <div class="hb" style="grid-column:2;grid-row:5;">
+    <div class="hb-a"><div class="da"></div><div class="hr"></div></div>
+    <div class="hb-l">/clear</div>
+    <div class="hb-s">fresh session</div>
+  </div>
+
+  <!-- Bridge 2: PR opened -->
+  <div class="hb" style="grid-column:4;grid-row:5;align-self:end;padding-top:0;padding-bottom:20px;">
+    <div class="hb-a"><div class="so"></div><div class="hr"></div></div>
+    <div class="hb-l">PR opened</div>
+  </div>
+
+</div>
+
+<!-- Linear lifecycle -->
+<div class="ls">
+  <div class="lh">Linear issue lifecycle</div>
+  <div class="lt">
+    <div class="sp">Backlog<span class="st">/draft</span></div><span class="sa">&rarr;</span>
+    <div class="sp">Todo<span class="st">/refine</span></div><span class="sa">&rarr;</span>
+    <div class="sp">In Progress<span class="st">/implement</span></div><span class="sa">&rarr;</span>
+    <div class="sp">In Review<span class="st">/review</span></div><span class="sa">&rarr;</span>
+    <div class="sp">Done<span class="st">/merge</span></div>
+  </div>
+</div>
+
+<!-- Legend -->
+<div class="lg">
+  <div class="li2"><div class="ld" style="background:var(--purple)"></div> Sub-Agent</div>
+  <div class="li2"><div class="ld" style="background:var(--orange)"></div> Human Gate</div>
+  <div class="li2"><div class="ld" style="background:var(--green)"></div> TDD</div>
+  <div class="li2"><div class="ld" style="background:var(--red)"></div> CI / Loop</div>
+  <div class="li2"><div class="ld" style="background:var(--blue)"></div> Linear Sync</div>
+</div>
+
+<script>
+function toggle(el){el.classList.toggle('expanded')}
+</script>
+</body>
+</html>
